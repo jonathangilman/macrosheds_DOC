@@ -1,3 +1,8 @@
+# Ignore data and figure folders
+data/
+figures/
+
+
 # History files
 .Rhistory
 .Rapp.history
