@@ -12,6 +12,7 @@ help(package = macrosheds)
 ?ms_load_sites
 ms_sites <- ms_load_sites()
 colnames(ms_sites)
+site_data <- ms_load_sites()
 
 # load variables
 ?ms_vars_ts
@@ -197,6 +198,74 @@ datatable(summary_stats,
           options = list(pageLength = 5, autoWidth = TRUE))
 # Save the summary table as a CSV file
 write.csv(summary_stats, file = here("figures","initial_exploration", "summary_stats.csv"), row.names = FALSE)
+
+
+
+#######################  Map
+
+# Extract the unique domain names from filtered_doc_chem_with_domain
+doc_domains <- unique(filtered_doc_chem_with_domain$domain)
+
+# Filter site_data to include only those domains
+filtered_site_data <- site_data %>%
+  filter(domain %in% doc_domains)
+
+# View the filtered site_data
+print(filtered_site_data)
+
+# Reduce to one row per domain
+domain_data <- filtered_site_data %>%
+  group_by(domain) %>%
+  summarize(
+    latitude = first(latitude),    # Assuming latitude is consistent within a domain, take the first value
+    longitude = first(longitude),  # Same for longitude
+  )
+
+# View the resulting dataframe
+print(domain_data)
+
+
+library(maps)
+
+# Filter to keep only domains within the continental US latitude and longitude ranges
+continental_us_domains <- domain_data %>%
+  filter(longitude >= -125 & longitude <= -66, latitude >= 24 & latitude <= 50)
+
+# Step 1: Get a map of the US
+us_map <- map_data("state")  # Load US map data
+
+# Step 2: Plot the US map and overlay the domain locations
+ggplot() +
+  # Plot the US map
+  geom_polygon(data = us_map, aes(x = long, y = lat, group = group), fill = "lightgray", color = "white") +
+  
+  # Plot the filtered domain locations
+  geom_point(data = continental_us_domains, aes(x = longitude, y = latitude), color = "red", size = 3) +
+  
+  # Add labels for each domain (optional)
+  geom_text(data = continental_us_domains, aes(x = longitude, y = latitude, label = domain), vjust = -1, size = 3) +
+  
+  # Add titles and labels
+  labs(title = "Locations of the 21 Domains in Continental US", x = "Longitude", y = "Latitude") +
+  
+  # Set the map coordinates
+  coord_fixed(1.3) +  # Keeps the aspect ratio of the map correct
+  
+  theme_minimal()
+
+
+
+# Original number of domains
+original_count <- nrow(domain_data)
+# Number of domains after filtering for continental US
+continental_us_count <- nrow(continental_us_domains)
+# Calculate how many were filtered out
+filtered_out_count <- original_count - continental_us_count
+# Print the results
+cat("Original number of domains:", original_count, "\n")
+cat("Number of domains in continental US:", continental_us_count, "\n")
+cat("Number of domains filtered out:", filtered_out_count, "\n")
+
 
 
 
