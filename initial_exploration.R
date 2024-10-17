@@ -35,6 +35,7 @@ ms_doc <- ms_sitevar_catalog %>%
   arrange(desc(observations), desc(mean_obs_per_day))
 
 unique(ms_doc$domain)
+unique(ms_sitevar_catalog$domain)
 
 # calculate total observations per domain
 domain_summary <- ms_doc %>%
@@ -140,6 +141,7 @@ n_interp0 <- nrow(filtered_doc_chem_with_domain)
 n_interp1 <- nrow(interp_doc_chem_with_domain)
 #### 1,362,432
 #### SUM : 1,448,327 okay
+
 
 
 ########### plot DOC values (mg/L) by domain from most observations to least
@@ -450,6 +452,53 @@ ggsave(here("figures/initial_exploration/map.png"), plot = map, width = 8, heigh
 filtered_out_domains <- anti_join(domain_data, continental_us_domains, by = "domain")
 # View the filtered out domains
 print(filtered_out_domains)
+
+
+###############################################
+###############  MCMURDO
+###############################################
+
+mcmurdo_info <- ms_sites %>%
+  filter(domain== "mcmurdo")
+mcmurdo <- filtered_doc_chem_with_domain %>%
+  filter(domain == "mcmurdo")
+mcmurdo_max <- mcmurdo %>%
+  filter(val > 150)
+mcmurdo_redbfalls <- mcmurdo %>%
+  filter(site_code == "red_bfalls")
+mcmurdo_redbfalls_recent <- mcmurdo_redbfalls %>%
+  filter(date > "2018-12-22", date < "2020-02-19")
+
+
+
+######## mcmurdo plots
+# Create the plot
+mcmurdo_plot1 <- ggplot(mcmurdo_redbfalls, aes(x = date, y = val)) +
+  geom_point(color = "blue") +  # Plot the points
+  geom_line(color = "darkblue") +  # Connect the points with lines
+  theme_minimal() +
+  labs(title = "Red River Blood Falls DOC", x = "Date", y = "DOC (mg/L)")
+  # Add labels for values above 150 mg/L
+  #geom_text(data = subset(mcmurdo_redbfalls, val > 150), aes(label = round(val, 1)), 
+           # vjust = -0.5, color = "red", size = 3)  # Adjust position and size
+mcmurdo_plot1
+
+mcmurdo_plot2 <- ggplot(mcmurdo_redbfalls_recent, aes(x = date, y = val)) +
+  geom_point(color = "blue") +  # Plot the points
+  geom_line(color = "darkblue") +  # Connect the points with lines
+  theme_minimal() +
+  labs(title = "Red River Blood Falls DOC", x = "Date", y = "DOC (mg/L)")+
+  #Add labels for values above 150 mg/L
+ geom_text(data = mcmurdo_redbfalls_recent, aes(label = round(val, 1)), 
+ vjust = -0.5, color = "red", size = 4)+ # Adjust position and size
+  ylim(0,210)+
+  scale_x_date(labels = date_format("%d-%b-%Y"))+
+  theme(axis.text.x = element_text(angle = -10, vjust = -.75))
+mcmurdo_plot2
+
+# Save the plots
+ggsave(here("figures/initial_exploration/mcmurdo.png"), plot = mcmurdo_plot1, width = 8, height = 5, dpi = 300)
+ggsave(here("figures/initial_exploration/mcmurdo_recent.png"), plot = mcmurdo_plot2, width = 8, height = 5, dpi = 300)
 
 
 
