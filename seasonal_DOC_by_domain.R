@@ -42,6 +42,16 @@ conus_doc_chem <- doc_chem %>%
            longitude >= -125.0 & longitude <= -66.93457)
 unique(conus_doc_chem$domain)
 
+
+panola <- conus_doc_chem %>%
+  filter(domain == "panola")
+
+hbef <- conus_doc_chem %>%
+  filter(domain == "hbef")
+
+min(hbef$date)
+
+
 #########################################################################
 # plot DOC values for each domain for fall, winter, spring, and summer
 # fall = months 9,10,11
@@ -99,8 +109,10 @@ ggsave(here("figures/seasonal/boxplot_domain.png"), plot = plot, width = 8, heig
 
 
 ####################
-####### MAP ########
+####### MAPS ########
 ####################
+
+# grouped domains
 
 # Assign seasons based on the month names in the 'month' column
 conus_doc_chem <- conus_doc_chem %>%
@@ -213,6 +225,7 @@ ggsave(here("figures/seasonal/map_domains_grouped.png"), plot = final_map, width
 
 
 ######################################
+# each domain individually
 
 # Assign seasons based on the month names in the 'month' column
 conus_doc_chem <- conus_doc_chem %>%
