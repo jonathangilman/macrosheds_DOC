@@ -26,8 +26,6 @@ doc_chem <- ms_load_product(
   filter_vars = 'DOC'
 )
 
-head(doc_chem)
-
 # load sites
 ?ms_load_sites
 site_data <- ms_load_sites()
@@ -174,52 +172,73 @@ ggsave(here("figures/seasonal/map_water_year.png"), plot = final_map, width = 10
 
 ############################################################
 # facet plot of same graphs just not on map
+# order facets by number of DOC measurements
 
-# Create a faceted plot for the yearly mean DOC values across all domains with slope and n annotations
+# Recalculate the number of unique DOC observations for each domain and water year
+mean_doc_by_domain_year <- conus_doc_chem %>%
+  mutate(date = as.Date(date),  # Ensure the 'date' column is in Date format
+         water_year = water_year(date)) %>%  # Calculate water year
+  group_by(domain, water_year) %>%
+  summarize(
+    mean_val = mean(val, na.rm = TRUE),  # Calculate mean DOC value for each domain and water year
+    n_obs = n()  # Recalculate the number of observations (records) for each domain and water year
+  )
+
+# Check if the total number of observations per domain is now correct
+domain_summary <- mean_doc_by_domain_year %>%
+  group_by(domain) %>%
+  summarize(total_obs = sum(n_obs))
+
+print(domain_summary)  # Verify that HBEF has around 10,000 observations
+
+
 create_faceted_yearly_mean_plot <- function(data) {
   
-  # Calculate the slope and total observations (n) for each domain and store them in the dataframe
+  # Group by domain to calculate the total number of observations
+  domain_summary <- data %>%
+    group_by(domain) %>%
+    summarize(
+      total_obs = sum(n_obs)  # Sum the number of observations for each domain
+    )
+  
+  # Join the summary data back to the original dataset
   data_with_slope <- data %>%
+    left_join(domain_summary, by = "domain") %>%
     group_by(domain) %>%
     mutate(
-      slope = coef(lm(mean_val ~ water_year))[2],  # Extract the slope from the linear model
-      total_obs = sum(n_obs)  # Calculate the total number of observations for each domain
+      slope = coef(lm(mean_val ~ water_year))[2]  # Extract the slope from the linear model
     )
   
   # Create the base plot with all domains
   yearly_plot <- ggplot(data_with_slope, aes(x = water_year, y = mean_val)) +
-    geom_line(size = 1, color = "blue") +  # Single line for each domain
+    geom_line(size = 0.75, color = "black") +  # Single line for each domain
     geom_point(size = 0.5) +  # Add points to highlight yearly means
     # Add a red trendline using geom_smooth with a linear model
-    geom_smooth(method = "lm", color = "red", linetype = "solid", se = FALSE) +
-    # Use facet_wrap to create a separate panel for each domain
+    geom_smooth(method = "lm", color = "red", linetype = "solid", se = FALSE, size = 0.75) +
+    # Use facet_wrap to create a separate panel for each domain, ordered by total_obs
     facet_wrap(~ domain, scales = "free_y") +  # Separate by domain, free_y allows different y-axis scales
-    # Annotate the slope in red for each domain
-    geom_text(aes(label = paste0("Slope: ", round(slope, 3))), 
-              x = Inf, y = Inf, hjust = 3.5, vjust = 2, color = "red", size = 3) +
     # Annotate the total number of observations (n=__) in black for each domain
     geom_text(aes(label = paste0("n = ", scales::comma(total_obs))), 
-              x = Inf, y = Inf, hjust = 3.5, vjust = 3.5, color = "black", size = 3) +
+              x = 1975, y = Inf, hjust = 0, vjust = 2, color = "black", size = 1.75) +
+    # Annotate the slope in red for each domain
+    geom_text(aes(label = paste0("Slope: ", round(slope, 3))), 
+              x = 1975, y = Inf, hjust = 0, vjust = 3.5, color = "red", size = 1.75) +
     theme_minimal() +
     theme(
       legend.position = "none",  # Remove legend
-      text = element_text(size = 7),  # Adjust text size
+      text = element_text(size = 9),  # Adjust text size
       plot.title = element_text(size = 9),
       axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for better readability
-      panel.grid = element_blank(),  # Remove gridlines
-      panel.background = element_rect(fill = "white", color = NA)  # Set white background for the plot
+      panel.grid = element_blank(),  # Remove gridlines 
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.25)  # Add a black border around each facet
     ) +
-    labs(x = "Water Year", y = "Mean DOC")
+    labs(x = "Water Year", y = "Mean DOC", title = "DOC by Water Year")
   
   # Return the plot
   yearly_plot
 }
-
 # Create the faceted plot for all domains
 faceted_plot <- create_faceted_yearly_mean_plot(mean_doc_by_domain_year)
 
-# Print the faceted plot
-print(faceted_plot)
-
+# Save the plot
 ggsave(here("figures/seasonal/water_year.png"), plot = faceted_plot, width = 8, height = 6, dpi = 300)
-

@@ -37,6 +37,11 @@ ms_doc <- ms_sitevar_catalog %>%
 unique(ms_doc$domain)
 unique(ms_sitevar_catalog$domain)
 
+
+ms_doc_hbef <- ms_doc %>% 
+  filter(domain == 'hbef')
+sum(ms_doc_hbef$observations)
+
 # calculate total observations per domain
 domain_summary <- ms_doc %>%
   group_by(domain) %>%
@@ -148,25 +153,24 @@ n_interp1 <- nrow(interp_doc_chem_with_domain)
 ########### stacked bar plot with interpolated values
 
 # Calculate the number of observations for ms_interp == 0
-domain_order <- filtered_doc_chem_with_domain %>%
+domain_order <- doc_chem_with_domain %>%
   group_by(domain) %>%
   summarize(
     count = n(),
     median_val = median(val, na.rm = TRUE)
-  ) %>%
-  mutate(ms_interp_status = "ms_interp = 0")  # Label for stacking
-
+  ) 
+str(domain_order)
 # Calculate the number of observations for ms_interp != 0
-interp_domain_order <- interp_doc_chem %>%
-  group_by(domain) %>%
-  summarize(
-    count = n(),
-    median_val = median(val, na.rm = TRUE)
-  ) %>%
-  mutate(ms_interp_status = "ms_interp = 1")  # Label for stacking
+#interp_domain_order <- interp_doc_chem %>%
+#  group_by(domain) %>%
+#  summarize(
+#    count = n(),
+#    median_val = median(val, na.rm = TRUE)
+#  ) %>%
+#  mutate(ms_interp_status = "ms_interp = 1")  # Label for stacking
 
 # Combine both datasets
-combined_order <- bind_rows(domain_order, interp_domain_order)
+#combined_order <- bind_rows(domain_order, interp_domain_order)
 
 
 
@@ -223,17 +227,39 @@ ggsave(here("figures/initial_exploration/doc_stacked.png"), plot = combined_stac
 ########### plot DOC values (mg/L) by domain from most observations to least
 ########### no interpolated values
 
+# Define the domains you want to filter out for CONUS
+domains_to_exclude <- c("arctic", "bonanza", "krycklan", "luquillo", "mcmurdo")
+# Filter the dataframe to exclude the specified domains
+domain_order <- domain_order %>%
+  filter(!domain %in% domains_to_exclude)
+
+
 # plot total DOC observations per domain
 doc_obs_plot3 <- ggplot(domain_order, aes(x = reorder(domain, -count), y = count)) +
   geom_bar(stat = "identity", fill = "skyblue") +
+  scale_y_continuous(labels = scales::comma) +  # Add commas to y-axis labels
   theme_minimal() +
   labs(title = "DOC Measurements per Domain", x = "Domain", y = "Number of Measurements") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.25),
+    axis.ticks.x = element_line(color = "black"))# Remove all gridlines
+
+# Display the plot
 doc_obs_plot3
 ggsave(here("figures/initial_exploration/total_doc_observations.png"), plot = doc_obs_plot3, width = 6, height = 5, dpi = 300)
 
 
 ########### DURATION PLOT
+
+# Filter the dataframe to exclude the specified domains
+filtered_doc_chem_with_domain <- filtered_doc_chem_with_domain %>%
+  filter(!domain %in% domains_to_exclude)
+
+# Check the filtered dataframe
+filtered_doc_chem_with_domain
+unique(filtered_doc_chem_with_domain$domain)
 
 # Convert the 'date' column to Date format
 filtered_doc_chem_with_domain$date <- as.Date(filtered_doc_chem_with_domain$date)
@@ -252,11 +278,23 @@ duration_plot <- ggplot(domain_duration, aes(x = reorder(domain, -duration_years
   geom_bar(stat = "identity", fill = "lightgreen") +
   theme_minimal() +
   labs(title = "Data Collection Duration for DOC per Domain", x = "Domain", y = "Duration (Years)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.25),
+    axis.ticks.x = element_line(color = "black"))
 duration_plot
+ggsave(here("figures/initial_exploration/duration_plot.png"), plot = duration_plot, width = 6, height = 5, dpi = 300)
 
 
 ########### MEAN OBSERVATIONS PER DAY PLOT
+
+# Check the structure of domain_order
+str(domain_order)
+
+# Check the structure of domain_duration
+str(domain_duration)
+
 
 # Merge domain_order and domain_duration to calculate mean observations per day
 domain_stats <- domain_order %>%
@@ -306,19 +344,25 @@ filtered_doc_chem_with_domain <- filtered_doc_chem_with_domain %>%
   left_join(domain_stats, by = "domain")
 
 # Create the boxplot with observation count labels 5 units above the max value
-all_plot <- ggplot(filtered_doc_chem_with_domain, aes(x = domain, y = val)) +
+all_plot <- ggplot(domain_order, aes(x = domain, y = val)) +
   geom_boxplot(fill = "lightblue", outlier.color = "red") +
   theme_minimal() +
   labs(title = "DOC Values by Domain", 
        x = "Domain", 
        y = "DOC (mg/L)") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.25),
+    axis.ticks.x = element_line(color = "black"))+
   # Add the observation count 5 units above the maximum value for each domain
-  geom_text(data = domain_stats, aes(x = domain, y = max_val + 5, label = paste("n=", count)), 
+  geom_text(data = domain_stats, aes(x = domain, y = max_val + 5, label = paste("n=", scales::comma(count))), 
             inherit.aes = FALSE, vjust = -0.5, size = 3)  # Adjust position and size as needed
 
 # Display the plot
 all_plot
+ggsave(here("figures/initial_exploration/all_plot.png"), plot = all_plot, width = 10, height = 6, dpi = 300)
+
   
 all_plot_removed_outliers <- ggplot(filtered_doc_chem_with_domain, aes(x = domain, y = val)) +
   geom_boxplot(fill = "lightblue", outlier.color = "red") +

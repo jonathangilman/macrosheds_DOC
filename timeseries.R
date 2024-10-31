@@ -45,10 +45,14 @@ site_data <- site_data %>%
 
 # Create the plot using ggplot
 timeseries <- ggplot(site_data, aes(x = start_date, xend = end_date, y = site_code, yend = site_code)) +
-  geom_segment(linewidth = 0.25) +
+  geom_segment(linewidth = 0.4) +
   labs(title = "MS Site Data: DOC", x = "Year", y = "Site Code") +
   theme_minimal()+
-  theme(axis.text.y = element_text(size = 5))
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank(),   # Remove gridlines
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.25),
+        axis.ticks.x = element_line(color = "black"))
 
 ggsave(here("figures/temporal_analyses/timeseries.png"), plot = timeseries, width = 8, height = 10, dpi = 300)
 
