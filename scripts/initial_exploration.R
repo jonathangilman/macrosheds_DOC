@@ -36,7 +36,7 @@ ms_doc <- ms_sitevar_catalog %>%
 
 unique(ms_doc$domain)
 unique(ms_sitevar_catalog$domain)
-unique(ms_sitevar_catalog$variable_name)
+
 
 ms_doc_hbef <- ms_doc %>% 
   filter(domain == 'hbef')
