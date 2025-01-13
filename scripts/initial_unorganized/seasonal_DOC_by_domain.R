@@ -54,6 +54,9 @@ min(hbef$date)
 
 #########################################################################
 # plot DOC values for each domain for fall, winter, spring, and summer
+
+################################ NOT VWM THOUGH
+
 # fall = months 9,10,11
 # winter = months 12,1,2
 # spring = months 3, 4, 5
