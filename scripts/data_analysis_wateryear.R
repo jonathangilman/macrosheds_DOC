@@ -428,26 +428,38 @@ doc_plot_data <- vwm_doc %>%
 combined_plot_data <- bind_rows(ph_plot_data, doc_plot_data)
 
 ############################################
-# Create the Unified Faceted Plot
+# Create the Unified Faceted Plot with Adjustments
 ############################################
 
 unified_trend_plot <- ggplot(combined_plot_data, aes(x = water_year, y = value, group = site_code)) +
-  geom_point(aes(color = significant), alpha = 0.6, size = 2) +
+  # Points and trendlines
+  geom_point(color = "black", alpha = 0.6, size = 2) +  # Black points
   geom_smooth(
-    data = subset(combined_plot_data, significant == TRUE),
     method = "lm", se = FALSE, color = "blue", linewidth = 0.75
   ) +
-  facet_wrap(~variable, ncol = 1, scales = "free_y") +  # Two rows: VWM pH on top, VWM DOC on bottom
-  scale_color_manual(values = c("grey", "black")) +
+  # Facet for pH and DOC
+  facet_wrap(~variable, ncol = 1, scales = "free_y") +
+  # Add labels for site trendlines
+  geom_text(
+    data = combined_plot_data %>%
+      group_by(variable, site_code) %>%
+      summarize(
+        x = max(water_year, na.rm = TRUE),
+        y = max(value, na.rm = TRUE),
+        .groups = "drop"
+      ),
+    aes(x = x, y = y, label = site_code),
+    hjust = 1.1, vjust = 0, size = 3, color = "blue"
+  ) +
+  # Customizations
   labs(
     x = "Water Year",
     y = "Value",
-    color = "Trend Significance",
-    title = "Unified Faceted Scatterplot of VWM pH and DOC Trends (Both Significant)"
+    title = "Significant Trends VWM pH and DOC"
   ) +
   theme_minimal() +
   theme(
-    legend.position = "bottom",
+    legend.position = "none",  # Remove legend
     panel.border = element_rect(color = "black", fill = NA, size = 1),
     axis.ticks = element_line(color = "black"),
     axis.ticks.length = unit(0.15, "cm"),
@@ -460,8 +472,7 @@ unified_trend_plot <- ggplot(combined_plot_data, aes(x = water_year, y = value, 
 # Save and Display the Plot
 ############################################
 
-ggsave(here("figures/Q/unified_trend_plot_both_sig.png"), plot = unified_trend_plot, width = 10, height = 8, dpi = 300)
+ggsave(here("figures/analysis_figs/unified_trend_plot_adjusted.png"), plot = unified_trend_plot, width = 6, height = 8, dpi = 300)
 print(unified_trend_plot)
-
 
 
